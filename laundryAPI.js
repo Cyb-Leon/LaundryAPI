@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 
-//server
+//API config
 const app = express();
 const port = 4000;
 
