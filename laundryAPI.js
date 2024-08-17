@@ -80,23 +80,32 @@ const detergentInfo = [
 ];
 const userProfile = [
     {
-        "userId": users.find(0),
-        "laundryPreferences": laundryInfo.find(0),
-        "detergentUsagePattern": detergentInfo.find(0)
+        "userId": 1,
+        "laundryPreferences": laundryInfo.at(0),
+        "detergentUsagePattern": detergentInfo.at(0)
     },
     {
-        "userId": users.find(1),
-        "laundryPreferences": laundryInfo.find(1),
-        "detergentUsagePattern": detergentInfo.find(1)
+        "userId": 2,
+        "laundryPreferences": laundryInfo.at(1),
+        "detergentUsagePattern": detergentInfo.at(1)
     },
     {
-        "userId": users.find(2),
-        "laundryPreferences": laundryInfo.find(2),
-        "detergentUsagePattern": detergentInfo.find(2)
+        "userId": 3,
+        "laundryPreferences": laundryInfo.at(2),
+        "detergentUsagePattern": detergentInfo.at(2)
     },
 ];
 
 //routes
+//get userProfile
+app.get('/profile/:id',(req,res) => {
+    const userId = req.params.id;
+    console.log(userId);
+    //API responds with profile detatils
+    const profile = userProfile.find((userProfile) => userProfile.userId == userId);
+    console.log(profile); 
+    res.json(profile);
+})
 //Post /user/register
 app.post("/user/register", (req, res) => {
     //pull from server/form
@@ -154,7 +163,7 @@ function saveProfileToDatabase(profileData) {
     userProfile.push(profileData);
 }
 
-//get initial data of the laundry
+//POST initial data of the laundry
 app.post('/user/laundry-data', (req, res) => {
     // # Step 4: Prompt user to enter initial laundry data
     const userId = req.body.userId;
