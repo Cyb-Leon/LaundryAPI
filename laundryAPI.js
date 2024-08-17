@@ -81,35 +81,44 @@ const detergentInfo = [
 const userProfile = [
     {
         "userId": 1,
-        "laundryPreferences": laundryInfo.at(0),
-        "detergentUsagePattern": detergentInfo.at(0)
+        "laundry": laundryInfo.at(0),
+        "detergentUsage": detergentInfo.at(0)
     },
     {
         "userId": 2,
-        "laundryPreferences": laundryInfo.at(1),
-        "detergentUsagePattern": detergentInfo.at(1)
+        "laundry": laundryInfo.at(1),
+        "detergentUsage": detergentInfo.at(1)
     },
     {
         "userId": 3,
-        "laundryPreferences": laundryInfo.at(2),
-        "detergentUsagePattern": detergentInfo.at(2)
+        "laundry": laundryInfo.at(2),
+        "detergentUsage": detergentInfo.at(2)
     },
 ];
 
+let lastId = 3;
+
 //routes
 //get userProfile
-app.get('/profile/:id',(req,res) => {
+app.get('/profile/:id', (req, res) => {
     const userId = req.params.id;
     console.log(userId);
     //API responds with profile detatils
     const profile = userProfile.find((userProfile) => userProfile.userId == userId);
-    console.log(profile); 
+    console.log(profile);
     res.json(profile);
 })
 //Post /user/register
-app.post("/user/register", (req, res) => {
+app.post('/user/register', (req, res) => {
     //pull from server/form
-    const userData = req.body; //json for in-memory database
+    console.log(req.body);
+    const userData = {
+        userId: lastId += 1,
+        userEmail: req.body.userEmail,
+        userPassword: req.body.userPassword,
+    }
+
+    console.log(userData);
     //# Step 1: Validate the user's input data (e.g., email, password, etc.)
     if (validateUserData(userData) != false) {
         // # Step 2: Save user data to the database
@@ -118,15 +127,16 @@ app.post("/user/register", (req, res) => {
         // # Step 3: Initialize user profile with default preferences
         initializeUserProfile(userId);
 
-        return { message: "User registered successfully", userId: userId };
+        res.json({ message: "User registered successfully", userId: userId });
     } else {
-        return { error: "Invalid user data" };
+        res.json({ error: "Invalid user data" });
     }
+
 });
 
 //function for validating user credentials
 function validateUserData(userData) {
-    if (userData.email && userData.password) {
+    if (userData.userEmail && userData.userPassword) {
         return true;
     } else {
         return false;
@@ -138,19 +148,19 @@ function saveUserToDatabase(userData) {
     //logic to save user data on Postgress
     //in-memory storage
     users.push({
-        userId: users.length,
+        userId: userData.userId,
         userEmail: userData.userEmail,
         userPassword: userData.userPassword,
     })
-    return (users.length - 1);
+    return (userData.userId);
 }
 
 //function for initialize user profile
 function initializeUserProfile(userId) {
-    profileData = {
+    const profileData = {
         userId: userId,
-        laundryPreferences: {},
-        detergentUsagePatterns: {},
+        laundry: {},
+        detergentUsage: {},
     };
 
     saveProfileToDatabase(profileData);
@@ -186,6 +196,9 @@ function gatherInitialLaundryData(userId, preferredDays, loadSize, averageLoadsP
     if (validateLaundryData(laundryData) != false) {
         // # Step 3: Save the laundry data to the user's profile
         saveLaundryData(userId, laundryData);
+        //update current user profile
+        const usrProfileUpdate = userProfile.find((userProfile) => userProfile.userId == userId);
+        usrProfileUpdate.laundry.laundryPreferences = laundryData;
 
         return { message: "Laundry data saved successfully", userId: userId };
     } else {
@@ -209,9 +222,9 @@ function validateLaundryData(laundryData) {
         laundryData.loadSize &&
         laundryData.averageLoadsPerWeek > 0
     ) {
-        return True;
+        return true;
     }
-    return False;
+    return false;
 }
 
 //save Laundry data to user's profile
@@ -228,7 +241,7 @@ function saveLaundryData(userId, laundryData) {
 
 }
 
-
+//POST
 app.post('/user/detergent-data', (req, res) => {
     // # Step 5: Prompt user to enter initial detergent supply data
     //get userId from previous route response
@@ -243,6 +256,48 @@ app.post('/user/detergent-data', (req, res) => {
     //API response to server
     res.json(messageResponse);
 })
+//GET
+app.get('/user/detergent-data/:id', (req, res) => {
+    const userId = parseInt(req.params.id);
+
+    //get user detergent-data
+    if (userId > 0 && userId <= users.length) {
+        const userDetergent = userProfile.find((userProfile) => userProfile.userId == userId);
+
+        res.status(200)
+            .json(userDetergent.detergentUsage.detergentUsagePatterns);
+    } else {
+        res
+            .status(404)
+            .send(`User ID does not exist (ID): ${userId}`)
+    }
+})
+
+//PATCH
+app.patch('/user/detergent-data/', (req, res) => {
+    //get ID and search if it exists
+    const userId = parseInt(req.body.userId);
+    if (userId > 0 && userId <= users.length) {
+        const getUserData = userProfile.find((userProfile) => userProfile.userId == userId);
+
+        //check which data changed
+        if (req.body.detergentBrand) { getUserData.detergentUsage.detergentUsagePatterns.detergentBrand = req.body.detergentBrand };
+        if (req.body.detergentType) { getUserData.detergentUsage.detergentUsagePatterns.detergentType = req.body.detergentType };
+        if (req.body.currentLevel) { getUserData.detergentUsage.detergentUsagePatterns.currentLevel = req.body.currentLevel };
+        if (req.body.averageUsagePerLoad) { getUserData.detergentUsage.detergentUsagePatterns.averageUsagePerLoad = req.body.averageUsagePerLoad };
+
+        res
+        .status(200)
+        .json(getUserData);
+    } else {
+        res
+            .status(404)
+            .json({ error: "user not found" });
+    }
+})
+
+//DELETE
+
 function gatherInitialDetergentData(userId, detergentBrand, detergentType, currentLevel, averageUsagePerLoad) {
     // # Step 1: Ask the user to input their current detergent supply
     const detergentData = promptUserForDetergentData(detergentBrand, detergentType, currentLevel, averageUsagePerLoad);
@@ -251,7 +306,9 @@ function gatherInitialDetergentData(userId, detergentBrand, detergentType, curre
     if (validateDetergentData(detergentData)) {
         // # Step 3: Save the detergent data to the user's profile
         saveDetergentData(userId, detergentData);
-
+        //update current user profile
+        const usrProfileUpdate = userProfile.find((userProfile) => userProfile.userId == userId);
+        usrProfileUpdate.detergentUsage.detergentUsagePatterns = detergentData;
         return { message: "Detergent data saved successfully", userId: userId };
     } else {
         return { error: "Invalid detergent data" };
