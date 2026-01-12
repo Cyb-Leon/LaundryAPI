@@ -1,4 +1,4 @@
-# LaundryAPI
+# LaundryAPI (Vanilla JS)
 
 Welcome to **LaundryAPI**! This is a smart and intuitive API designed to streamline your laundry process by automating task scheduling and managing detergent supplies based on your personal laundry habits.
 
